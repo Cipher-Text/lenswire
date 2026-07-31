@@ -1,0 +1,16 @@
+services:
+  lenswire:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    # Lenswire only makes outbound requests. Host networking avoids Docker bridge
+    # subnet allocation failures on small VMs with exhausted address pools.
+    network_mode: host
+    volumes:
+      - ./config:/app/config:ro
+      - lenswire_data:/app/data
+      - lenswire_cache:/app/.cache
+
+volumes:
+  lenswire_data:
+  lenswire_cache:

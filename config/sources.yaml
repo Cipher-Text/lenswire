@@ -1,0 +1,90 @@
+sources:
+  - name: Reuters
+    domain: reuters.com
+    source_type: NEWS_AGENCY
+    credibility_tier: TIER_2
+    language: en
+    country_or_region: Global
+    rss_url: https://feeds.reuters.com/reuters/worldNews
+    enabled: true
+
+  - name: Associated Press
+    domain: apnews.com
+    source_type: NEWS_AGENCY
+    credibility_tier: TIER_2
+    language: en
+    country_or_region: Global
+    rss_url: https://apnews.com/hub/world-news?output=rss
+    enabled: true
+
+  - name: AFP
+    domain: afp.com
+    source_type: NEWS_AGENCY
+    credibility_tier: TIER_2
+    language: en
+    country_or_region: Global
+    rss_url:
+    enabled: true
+
+  - name: Bloomberg
+    domain: bloomberg.com
+    source_type: NEWS_AGENCY
+    credibility_tier: TIER_2
+    language: en
+    country_or_region: Global
+    rss_url:
+    enabled: true
+
+  - name: Al Jazeera
+    domain: aljazeera.com
+    source_type: MAJOR_OUTLET
+    credibility_tier: TIER_3
+    language: en
+    country_or_region: Global
+    rss_url: https://www.aljazeera.com/xml/rss/all.xml
+    enabled: true
+
+  - name: BBC News
+    domain: bbc.co.uk
+    source_type: MAJOR_OUTLET
+    credibility_tier: TIER_3
+    language: en
+    country_or_region: Global
+    rss_url: http://feeds.bbci.co.uk/news/world/rss.xml
+    enabled: true
+
+  - name: The Diplomat
+    domain: thediplomat.com
+    source_type: SPECIALIST_OUTLET
+    credibility_tier: TIER_3
+    language: en
+    country_or_region: Asia-Pacific
+    rss_url: https://thediplomat.com/feed/
+    enabled: true
+
+  - name: International Crisis Group
+    domain: crisisgroup.org
+    source_type: SPECIALIST_OUTLET
+    credibility_tier: TIER_3
+    language: en
+    country_or_region: Global
+    rss_url: https://www.crisisgroup.org/rss.xml
+    enabled: true
+
+  - name: Google News
+    domain: news.google.com
+    source_type: DISCOVERY_ONLY
+    credibility_tier: DISCOVERY
+    language: multi
+    country_or_region: Global
+    rss_url:
+    enabled: true
+
+  - name: United Nations
+    domain: un.org
+    source_type: PRIMARY
+    credibility_tier: TIER_1
+    language: en
+    country_or_region: Global
+    rss_url: https://news.un.org/feed/subscribe/en/news/all/rss.xml
+    enabled: true

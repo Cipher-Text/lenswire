@@ -1,22 +1,11 @@
-import os
+from app.settings import settings
 
-# --- Credentials (set as environment variables, or just paste them here for local use) ---
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "YOUR_TELEGRAM_BOT_TOKEN")
-NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "YOUR_NEWSAPI_KEY")  # get a free key at newsapi.org
-
-# --- RSS sources (free, no key needed). Add/remove as you like. ---
-RSS_FEEDS = [
-    "http://feeds.bbci.co.uk/news/rss.xml",
-    "https://techcrunch.com/feed/",
-    "https://www.espn.com/espn/rss/news",
-    "https://feeds.reuters.com/reuters/topNews",
-    "https://www.theverge.com/rss/index.xml",
-    "https://www.aljazeera.com/xml/rss/all.xml",
-]
-
-# --- Behavior ---
-CHECK_INTERVAL_MINUTES = 30          # how often to poll for new articles
-SIMILARITY_THRESHOLD = 0.35          # cosine similarity cutoff to count as a "match" (0-1, higher = stricter)
-MAX_ARTICLES_PER_CYCLE = 5           # cap messages sent to one user per check, to avoid spam
-DB_PATH = "news_bot.db"
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # small, fast, good enough for this use case
+TELEGRAM_BOT_TOKEN = settings.telegram_bot_token or "YOUR_TELEGRAM_BOT_TOKEN"
+NEWSAPI_KEY = settings.newsapi_key or "YOUR_NEWSAPI_KEY"
+CHECK_INTERVAL_MINUTES = settings.ingestion_interval_minutes
+SIMILARITY_THRESHOLD = settings.similarity_threshold
+MAX_ARTICLES_PER_CYCLE = settings.max_articles_per_delivery
+DB_PATH = str(settings.database_path)
+SOURCE_CONFIG_PATH = str(settings.source_config_path)
+EMBEDDING_MODEL = settings.embedding_model_name
+RSS_FEEDS: list[str] = []

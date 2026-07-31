@@ -1,49 +1,30 @@
-from sentence_transformers import SentenceTransformer, util
+from __future__ import annotations
 
-from config import EMBEDDING_MODEL, SIMILARITY_THRESHOLD
+from difflib import SequenceMatcher
 
-_model = None
+from app.settings import settings
 
-
-def get_model():
-    global _model
-    if _model is None:
-        # Downloads ~80MB on first run, then cached locally.
-        _model = SentenceTransformer(EMBEDDING_MODEL)
-    return _model
+SIMILARITY_THRESHOLD = settings.similarity_threshold
 
 
 def match_articles(interests, articles, threshold=SIMILARITY_THRESHOLD):
-    """
-    interests: list[str], e.g. ["artificial intelligence", "football"]
-    articles: list[dict] with at least 'title' and 'description'
-
-    Returns matching articles (each tagged with matched_interest + score),
-    sorted by score descending.
-    """
-    if not interests or not articles:
-        return []
-
-    model = get_model()
-    interest_embeddings = model.encode(interests, convert_to_tensor=True)
-
-    texts = [f"{a['title']}. {a.get('description', '')}" for a in articles]
-    article_embeddings = model.encode(texts, convert_to_tensor=True)
-
-    cosine_scores = util.cos_sim(article_embeddings, interest_embeddings)
-
     matches = []
-    for i, article in enumerate(articles):
-        best_score = cosine_scores[i].max().item()
-        best_idx = cosine_scores[i].argmax().item()
+    for article in articles:
+        text = f"{article.get('title', '')} {article.get('description', '')}".lower()
+        best_interest = ""
+        best_score = 0.0
+        for interest in interests:
+            interest_text = interest.lower().strip()
+            score = (
+                1.0
+                if interest_text and interest_text in text
+                else SequenceMatcher(None, interest_text, text).ratio()
+            )
+            if score > best_score:
+                best_interest = interest
+                best_score = score
         if best_score >= threshold:
             matches.append(
-                {
-                    **article,
-                    "matched_interest": interests[best_idx],
-                    "score": round(best_score, 3),
-                }
+                {**article, "matched_interest": best_interest, "score": round(best_score, 3)}
             )
-
-    matches.sort(key=lambda x: x["score"], reverse=True)
-    return matches
+    return sorted(matches, key=lambda item: item["score"], reverse=True)
