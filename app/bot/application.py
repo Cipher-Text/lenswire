@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
+from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
 
 from app.bot.handlers import editorial, public
+from app.delivery.formatter import format_external_message
+from app.delivery.service import DeliveryService
 from app.ingestion.pipeline import IngestionPipeline
 from app.matching.embeddings import cached_provider
 from app.persistence.migrations import migrate
@@ -20,6 +24,52 @@ async def scheduled_ingestion(context: ContextTypes.DEFAULT_TYPE) -> None:
         await pipeline.run()
     except Exception:
         logger.exception("scheduled ingestion failed")
+
+
+async def scheduled_channel_delivery(context: ContextTypes.DEFAULT_TYPE) -> None:
+    settings: Settings = context.application.bot_data["settings"]
+    repo: Repository = context.application.bot_data["repo"]
+    if not settings.telegram_channel_id or not settings.channel_topic_keys:
+        return
+
+    delivery = DeliveryService(repo)
+    try:
+        articles = await asyncio.to_thread(
+            delivery.latest_for_channel,
+            settings.telegram_channel_id,
+            list(settings.channel_topic_keys),
+            settings.channel_max_articles_per_run,
+        )
+    except Exception:
+        logger.exception("scheduled channel delivery lookup failed")
+        return
+
+    for article in articles:
+        article_id = int(article["id"])
+        try:
+            await context.bot.send_message(
+                chat_id=settings.telegram_channel_id,
+                text=format_external_message(article),
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=False,
+            )
+            await asyncio.to_thread(
+                delivery.record_channel_sent,
+                settings.telegram_channel_id,
+                article_id,
+            )
+        except Exception as exc:
+            await asyncio.to_thread(
+                repo.record_channel_delivery,
+                settings.telegram_channel_id,
+                article_id,
+                "FAILED",
+                str(exc),
+            )
+            logger.exception(
+                "scheduled channel delivery failed for article",
+                extra={"article_id": article_id, "channel_id": settings.telegram_channel_id},
+            )
 
 
 def build_application(settings: Settings) -> Application:
@@ -69,4 +119,15 @@ def build_application(settings: Settings) -> Application:
         first=30,
         name="lenswire-ingestion",
     )
+    if (
+        settings.channel_delivery_enabled
+        and settings.telegram_channel_id
+        and settings.channel_topic_keys
+    ):
+        app.job_queue.run_repeating(
+            scheduled_channel_delivery,
+            interval=settings.channel_delivery_interval_minutes * 60,
+            first=60,
+            name="lenswire-channel-delivery",
+        )
     return app

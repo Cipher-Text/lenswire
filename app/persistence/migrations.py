@@ -264,6 +264,16 @@ def migrate(
                 FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS channel_delivery_history (
+                channel_id TEXT NOT NULL,
+                article_id INTEGER NOT NULL,
+                delivered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                status TEXT NOT NULL DEFAULT 'SENT',
+                error TEXT,
+                PRIMARY KEY (channel_id, article_id),
+                FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+            );
+
             CREATE INDEX IF NOT EXISTS idx_articles_canonical_url ON articles(canonical_url);
             CREATE INDEX IF NOT EXISTS idx_articles_content_hash ON articles(content_hash);
             CREATE INDEX IF NOT EXISTS idx_articles_publication_time ON articles(publication_time);
@@ -271,6 +281,8 @@ def migrate(
             CREATE INDEX IF NOT EXISTS idx_user_topic
             ON user_topic_subscriptions(topic_key, chat_id);
             CREATE INDEX IF NOT EXISTS idx_delivery_pair ON delivery_history(chat_id, article_id);
+            CREATE INDEX IF NOT EXISTS idx_channel_delivery_pair
+            ON channel_delivery_history(channel_id, article_id);
             """
         )
 

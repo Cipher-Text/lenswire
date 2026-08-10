@@ -92,6 +92,11 @@ Configuration is read from environment variables. See `.env.example` for all opt
 - `EXTERNAL_DELIVERY_APPROVAL_REQUIRED`
 - `AUTO_PUBLISH_TRUSTED_SOURCES`
 - `TRUSTED_SOURCES_ONLY`
+- `TELEGRAM_CHANNEL_ID`
+- `CHANNEL_TOPIC_KEYS`
+- `CHANNEL_DELIVERY_ENABLED`
+- `CHANNEL_DELIVERY_INTERVAL_MINUTES`
+- `CHANNEL_MAX_ARTICLES_PER_RUN`
 - `LOG_LEVEL`
 
 Do not paste credentials into source files.

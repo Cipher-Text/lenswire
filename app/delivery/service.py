@@ -11,5 +11,11 @@ class DeliveryService:
         topics = self.repo.user_topics(chat_id)
         return self.repo.latest_for_topics([topic.key for topic in topics], limit, approved_only)
 
+    def latest_for_channel(self, channel_id: str, topic_keys: list[str], limit: int) -> list[dict]:
+        return self.repo.latest_for_channel(channel_id, topic_keys, limit)
+
     def record_sent(self, chat_id: int, article_id: int) -> None:
         self.repo.record_delivery(chat_id, article_id)
+
+    def record_channel_sent(self, channel_id: str, article_id: int) -> None:
+        self.repo.record_channel_delivery(channel_id, article_id)

@@ -429,6 +429,36 @@ class Repository:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def latest_for_channel(self, channel_id: str, topic_keys: list[str], limit: int) -> list[dict]:
+        if not topic_keys:
+            return []
+        placeholders = ",".join("?" for _ in topic_keys)
+        with sqlite_connection(self.database_path) as conn:
+            rows = conn.execute(
+                f"""
+                SELECT a.*, s.summary, s.why_it_matters, s.editorial_angle, s.verification_status,
+                       GROUP_CONCAT(DISTINCT t.english_name) AS topics
+                FROM articles a
+                JOIN sources src ON src.id = a.source_id
+                JOIN summaries s ON s.article_id = a.id
+                JOIN article_topics at ON at.article_id = a.id
+                JOIN topics t ON t.key = at.topic_key
+                LEFT JOIN channel_delivery_history cdh
+                    ON cdh.article_id = a.id AND cdh.channel_id = ? AND cdh.status = 'SENT'
+                WHERE a.status IN ('APPROVED', 'PUBLISHED')
+                  AND src.enabled = 1
+                  AND src.source_type != 'DISCOVERY_ONLY'
+                  AND src.credibility_tier != 'DISCOVERY'
+                  AND cdh.article_id IS NULL
+                  AND at.topic_key IN ({placeholders})
+                GROUP BY a.id
+                ORDER BY COALESCE(a.publication_time, a.fetched_time) DESC
+                LIMIT ?
+                """,
+                (channel_id, *topic_keys, limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def was_delivered(self, chat_id: int, article_id: int) -> bool:
         with sqlite_connection(self.database_path) as conn:
             row = conn.execute(
@@ -456,3 +486,20 @@ class Repository:
                     "INSERT OR IGNORE INTO sent_articles (chat_id, article_url) VALUES (?, ?)",
                     (chat_id, article["original_url"]),
                 )
+
+    def record_channel_delivery(
+        self, channel_id: str, article_id: int, status: str = "SENT", error: str | None = None
+    ) -> None:
+        with sqlite_connection(self.database_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO channel_delivery_history
+                    (channel_id, article_id, status, error)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(channel_id, article_id) DO UPDATE SET
+                    delivered_at = CURRENT_TIMESTAMP,
+                    status = excluded.status,
+                    error = excluded.error
+                """,
+                (channel_id, article_id, status, error),
+            )

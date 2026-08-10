@@ -29,6 +29,12 @@ def _csv_ints(value: str | None) -> set[int]:
     return {int(part.strip()) for part in value.split(",") if part.strip()}
 
 
+def _csv_strings(value: str | None) -> tuple[str, ...]:
+    if not value:
+        return ()
+    return tuple(part.strip() for part in value.split(",") if part.strip())
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     telegram_bot_token: str
@@ -61,6 +67,11 @@ class Settings:
     external_delivery_approval_required: bool
     auto_publish_trusted_sources: bool
     trusted_sources_only: bool
+    telegram_channel_id: str | None
+    channel_topic_keys: tuple[str, ...]
+    channel_delivery_enabled: bool
+    channel_delivery_interval_minutes: int
+    channel_max_articles_per_run: int
     log_level: str
     manual_refresh_cooldown_seconds: int
     retention_delivery_history_days: int
@@ -107,6 +118,13 @@ class Settings:
             ),
             auto_publish_trusted_sources=_bool(os.getenv("AUTO_PUBLISH_TRUSTED_SOURCES"), True),
             trusted_sources_only=_bool(os.getenv("TRUSTED_SOURCES_ONLY"), True),
+            telegram_channel_id=os.getenv("TELEGRAM_CHANNEL_ID") or None,
+            channel_topic_keys=_csv_strings(os.getenv("CHANNEL_TOPIC_KEYS")),
+            channel_delivery_enabled=_bool(os.getenv("CHANNEL_DELIVERY_ENABLED"), False),
+            channel_delivery_interval_minutes=_int(
+                os.getenv("CHANNEL_DELIVERY_INTERVAL_MINUTES"), 10
+            ),
+            channel_max_articles_per_run=_int(os.getenv("CHANNEL_MAX_ARTICLES_PER_RUN"), 3),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             manual_refresh_cooldown_seconds=_int(os.getenv("MANUAL_REFRESH_COOLDOWN_SECONDS"), 180),
             retention_delivery_history_days=_int(os.getenv("RETENTION_DELIVERY_HISTORY_DAYS"), 90),
