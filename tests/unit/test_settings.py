@@ -18,7 +18,7 @@ def test_simple_trusted_source_flow_defaults_enabled(monkeypatch):
     assert settings.channel_topic_keys == ()
     assert settings.channel_output_language == "en"
     assert not settings.channel_delivery_enabled
-    assert settings.channel_delivery_interval_minutes == 10
+    assert settings.channel_delivery_interval_minutes == 30
     assert settings.channel_max_articles_per_run == 3
 
 

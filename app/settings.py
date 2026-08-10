@@ -116,7 +116,7 @@ class Settings:
             channel_output_language=os.getenv("CHANNEL_OUTPUT_LANGUAGE", "en"),
             channel_delivery_enabled=_bool(os.getenv("CHANNEL_DELIVERY_ENABLED"), False),
             channel_delivery_interval_minutes=_int(
-                os.getenv("CHANNEL_DELIVERY_INTERVAL_MINUTES"), 10
+                os.getenv("CHANNEL_DELIVERY_INTERVAL_MINUTES"), 30
             ),
             channel_max_articles_per_run=_int(os.getenv("CHANNEL_MAX_ARTICLES_PER_RUN"), 3),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
