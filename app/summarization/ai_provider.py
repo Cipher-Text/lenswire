@@ -95,7 +95,7 @@ class OpenRouterSummaryBackend:
                         {"role": "user", "content": self.prompt_builder.article_prompt(article)},
                     ],
                     "temperature": 0.2,
-                    "max_tokens": 600,
+                    "max_tokens": 1000,
                 },
             )
             if response.status_code in RETRYABLE_STATUS_CODES:

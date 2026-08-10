@@ -1,3 +1,4 @@
+import json
 from dataclasses import replace
 
 import httpx
@@ -49,6 +50,8 @@ def _json_content(summary: str = "China announced new export controls.") -> str:
 async def test_openrouter_success_returns_structured_summary():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/v1/chat/completions"
+        body = json.loads(request.content)
+        assert body["max_tokens"] == 1000
         return httpx.Response(
             200,
             json={"choices": [{"message": {"content": _json_content()}}]},
