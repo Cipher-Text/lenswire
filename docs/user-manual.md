@@ -114,6 +114,10 @@ Shows recent stories for your subscribed topics. In the current version, this wo
 /digest
 ```
 
+## Telegram Channel
+
+The public channel does not use each user’s subscriptions. It publishes from the fixed topic list configured in `CHANNEL_TOPIC_KEYS`. If `CHANNEL_OUTPUT_LANGUAGE=bn`, channel labels and fallback text are Bangla; AI summaries should also be configured with `SUMMARY_OUTPUT_LANGUAGE=bn` for full Bangla output.
+
 ## `/language en|bn`
 
 Sets your preferred language.

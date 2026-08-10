@@ -112,13 +112,28 @@ OPENROUTER_API_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=google/gemini-3.1-flash-lite
 GEMINI_API_KEY=your_gemini_key
 GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.1-flash-lite
 AI_REQUEST_TIMEOUT_SECONDS=30
 ```
 
 Lenswire always tries OpenRouter first. If OpenRouter fails, hits a limit, returns 404 for a model, times out, or returns invalid JSON, Lenswire tries Gemini. If both AI providers fail, it uses the deterministic fallback summary and continues ingestion.
 
-For zero-cost OpenRouter usage, use `openrouter/free` or a specific `:free` model. Do not use `openrouter/auto` if you want to avoid paid model routing.
+For reliable Bangla channel summaries, use a specific OpenRouter model such as `google/gemini-3.1-flash-lite`. Avoid `openrouter/free` for production summaries because free routing can return truncated or invalid JSON.
+
+## Telegram Channel Delivery
+
+Lenswire can publish fixed-topic news to a Telegram channel through the scheduler. Add the bot as a channel admin with permission to post messages, then configure:
+
+```env
+TELEGRAM_CHANNEL_ID=@your_channel
+CHANNEL_TOPIC_KEYS=south-asia,bangladesh-foreign-policy,india,china,myanmar,rohingya-rakhine,us-china-relations,global-trade,defence-security,diplomacy
+CHANNEL_OUTPUT_LANGUAGE=bn
+CHANNEL_DELIVERY_ENABLED=true
+CHANNEL_DELIVERY_INTERVAL_MINUTES=30
+CHANNEL_MAX_ARTICLES_PER_RUN=3
+```
+
+Channel delivery reuses trusted-source ingestion, keyword topic matching, AI/deterministic summaries and safe Telegram HTML formatting. Sent channel articles are recorded separately so they are not posted repeatedly.
 
 ## Source List
 
@@ -192,7 +207,7 @@ mypy app
 pytest
 ```
 
-Unit tests mock external network and embedding behavior. They do not require internet connectivity or model downloads.
+Unit tests mock external network behavior. They do not require internet connectivity.
 
 ## Docker Deployment
 
@@ -213,7 +228,7 @@ Lenswire stores Telegram chat IDs, topic subscriptions, language preferences, qu
 - Deterministic summaries are extractive and may miss nuance.
 - Primary-source detection is prepared but initially heuristic.
 - Supporting-source matching is basic.
-- Bangla output architecture exists, but deterministic summaries are strongest in English.
+- Bangla channel output works best with AI summaries. If AI providers fail, Lenswire uses conservative Bangla fallback text rather than posting English summary text.
 - Trusted source ingestion is not independent factual verification.
 
 ## Roadmap

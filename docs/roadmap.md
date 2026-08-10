@@ -38,7 +38,7 @@ Lenswire is being built as a modular monolith so the internal pilot can stay sim
 
 ## Phase 5: Quality and Operations
 
-- Add unit and integration tests that mock external HTTP and embedding providers.
+- Add unit and integration tests that mock external HTTP and AI providers.
 - Add Ruff, formatting, type checking and CI.
 - Add Docker and Docker Compose deployment files with persistent SQLite/model-cache volumes.
 - Add structured logging, timeouts, retries, ingestion locking, graceful shutdown and failed-delivery recording.
