@@ -61,7 +61,10 @@ def test_channel_delivery_returns_trusted_unsent_approved_articles(tmp_path):
     summary = asyncio.run(DeterministicSummaryProvider().summarize(article))
     repo.save_summary(article_id, summary)
 
-    assert [row["id"] for row in repo.latest_for_channel("@factlens", ["china"], 5)] == [article_id]
+    channel_rows = repo.latest_for_channel("@factlens", ["china"], 5)
+
+    assert [row["id"] for row in channel_rows] == [article_id]
+    assert channel_rows[0]["bangla_topics"] == "চীন"
     assert repo.latest_for_channel("@factlens", ["diplomacy"], 5) == []
 
     repo.record_channel_delivery("@factlens", article_id)

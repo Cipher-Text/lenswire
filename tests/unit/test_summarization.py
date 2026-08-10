@@ -19,3 +19,20 @@ async def test_deterministic_summary_uses_article_content():
     assert "First sentence." in summary.summary
     assert "Fifth sentence." not in summary.summary
     assert summary.verification_status == VerificationStatus.SINGLE_SOURCE
+
+
+@pytest.mark.asyncio
+async def test_deterministic_bangla_fallback_uses_bangla_metadata():
+    article = Article(
+        original_headline="Headline",
+        original_url="https://example.com/a",
+        canonical_url="https://example.com/a",
+        source_name="Reuters",
+        raw_description="English source sentence.",
+    )
+
+    summary = await DeterministicSummaryProvider("bn").summarize(article)
+
+    assert "এই খবরটি গুরুত্বপূর্ণ" in summary.why_it_matters
+    assert "সরকারি প্রতিক্রিয়া" in summary.editorial_angle
+    assert summary.language == "bn"

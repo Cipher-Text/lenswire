@@ -66,6 +66,7 @@ class Settings:
     trusted_sources_only: bool
     telegram_channel_id: str | None
     channel_topic_keys: tuple[str, ...]
+    channel_output_language: str
     channel_delivery_enabled: bool
     channel_delivery_interval_minutes: int
     channel_max_articles_per_run: int
@@ -114,6 +115,7 @@ class Settings:
             trusted_sources_only=_bool(os.getenv("TRUSTED_SOURCES_ONLY"), True),
             telegram_channel_id=os.getenv("TELEGRAM_CHANNEL_ID") or None,
             channel_topic_keys=_csv_strings(os.getenv("CHANNEL_TOPIC_KEYS")),
+            channel_output_language=os.getenv("CHANNEL_OUTPUT_LANGUAGE", "en"),
             channel_delivery_enabled=_bool(os.getenv("CHANNEL_DELIVERY_ENABLED"), False),
             channel_delivery_interval_minutes=_int(
                 os.getenv("CHANNEL_DELIVERY_INTERVAL_MINUTES"), 10

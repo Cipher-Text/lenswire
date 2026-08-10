@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
 
 from app.bot.handlers import editorial, public
-from app.delivery.formatter import format_external_message
+from app.delivery.formatter import format_channel_message
 from app.delivery.service import DeliveryService
 from app.ingestion.pipeline import IngestionPipeline
 from app.matching.embeddings import cached_provider
@@ -49,7 +49,7 @@ async def scheduled_channel_delivery(context: ContextTypes.DEFAULT_TYPE) -> None
         try:
             await context.bot.send_message(
                 chat_id=settings.telegram_channel_id,
-                text=format_external_message(article),
+                text=format_channel_message(article, settings.channel_output_language),
                 parse_mode=ParseMode.HTML,
                 disable_web_page_preview=False,
             )

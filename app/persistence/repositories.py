@@ -437,7 +437,8 @@ class Repository:
             rows = conn.execute(
                 f"""
                 SELECT a.*, s.summary, s.why_it_matters, s.editorial_angle, s.verification_status,
-                       GROUP_CONCAT(DISTINCT t.english_name) AS topics
+                       GROUP_CONCAT(DISTINCT t.english_name) AS topics,
+                       GROUP_CONCAT(DISTINCT t.bangla_name) AS bangla_topics
                 FROM articles a
                 JOIN sources src ON src.id = a.source_id
                 JOIN summaries s ON s.article_id = a.id
