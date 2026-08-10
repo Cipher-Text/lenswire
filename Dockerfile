@@ -3,10 +3,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOME=/app \
-    XDG_CACHE_HOME=/app/.cache \
-    HF_HOME=/app/.cache/huggingface \
-    TRANSFORMERS_CACHE=/app/.cache/huggingface/transformers \
-    SENTENCE_TRANSFORMERS_HOME=/app/.cache/sentence-transformers
+    XDG_CACHE_HOME=/app/.cache
 
 WORKDIR /app
 
@@ -16,7 +13,7 @@ COPY pyproject.toml requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN mkdir -p /app/data /app/.cache/huggingface /app/.cache/sentence-transformers \
+RUN mkdir -p /app/data /app/.cache \
     && chown -R lenswire:lenswire /app
 
 USER lenswire

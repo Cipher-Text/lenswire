@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 from app.domain.article import Article
 from app.domain.topic import Topic
-from app.matching.embeddings import EmbeddingProvider, cosine_similarity
 
 KEYWORD_HINTS = {
     "south-asia": {"south asia", "bangladesh", "india", "pakistan", "nepal", "sri lanka"},
@@ -58,24 +57,3 @@ def keyword_topic_matches(
             matches.append(TopicMatch(topic.key, min(1.0, threshold + score * 0.2)))
     matches.sort(key=lambda match: match.score, reverse=True)
     return matches[:5]
-
-
-async def semantic_topic_matches(
-    article: Article,
-    topics: list[Topic],
-    provider: EmbeddingProvider,
-    threshold: float,
-) -> list[TopicMatch]:
-    article_text = ". ".join(
-        [article.original_headline, article.raw_description, article.extracted_content[:3000]]
-    )
-    topic_texts = [f"{topic.english_name}. {topic.description or ''}".strip() for topic in topics]
-    vectors = await provider.encode([article_text, *topic_texts])
-    article_vector = vectors[0]
-    matches = [
-        TopicMatch(topic.key, cosine_similarity(article_vector, vector))
-        for topic, vector in zip(topics, vectors[1:], strict=True)
-    ]
-    return sorted(
-        (m for m in matches if m.score >= threshold), key=lambda m: m.score, reverse=True
-    )[:5]

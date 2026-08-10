@@ -10,7 +10,6 @@ from app.bot.handlers import editorial, public
 from app.delivery.formatter import format_channel_message
 from app.delivery.service import DeliveryService
 from app.ingestion.pipeline import IngestionPipeline
-from app.matching.embeddings import cached_provider
 from app.persistence.migrations import migrate
 from app.persistence.repositories import Repository
 from app.settings import Settings
@@ -76,8 +75,7 @@ def build_application(settings: Settings) -> Application:
     settings.validate_for_bot()
     migrate(settings.database_path, settings.source_config_path)
     repo = Repository(settings.database_path)
-    embedding_provider = cached_provider(settings.embedding_model_name)
-    pipeline = IngestionPipeline(settings, repo, embedding_provider)
+    pipeline = IngestionPipeline(settings, repo)
 
     app = Application.builder().token(settings.telegram_bot_token).build()
     app.bot_data["settings"] = settings

@@ -4,8 +4,7 @@ import logging
 
 from app.ingestion.newsapi import fetch_newsapi_articles
 from app.ingestion.rss import discover_rss_articles
-from app.matching.embeddings import EmbeddingProvider
-from app.matching.topics import keyword_topic_matches, semantic_topic_matches
+from app.matching.topics import keyword_topic_matches
 from app.persistence.repositories import Repository
 from app.settings import Settings
 from app.summarization.ai_provider import OptionalAISummaryProvider
@@ -20,11 +19,9 @@ class IngestionPipeline:
         self,
         settings: Settings,
         repo: Repository,
-        embedding_provider: EmbeddingProvider | None = None,
     ) -> None:
         self.settings = settings
         self.repo = repo
-        self.embedding_provider = embedding_provider
         if settings.summary_provider == "ai":
             self.summary_provider: SummaryProvider = OptionalAISummaryProvider(settings)
         else:
@@ -54,19 +51,6 @@ class IngestionPipeline:
         topics = self.repo.list_topics()
         for article_id, article in discovered:
             matches = keyword_topic_matches(article, topics)
-            if not matches and self.embedding_provider:
-                try:
-                    matches = await semantic_topic_matches(
-                        article,
-                        topics,
-                        self.embedding_provider,
-                        self.settings.similarity_threshold,
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "semantic topic matching failed; continuing without embeddings",
-                        extra={"article_url": article.canonical_url, "error": str(exc)},
-                    )
             self.repo.set_article_topics(
                 article_id, [(match.topic_key, match.score) for match in matches]
             )

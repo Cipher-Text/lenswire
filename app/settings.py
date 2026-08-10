@@ -58,7 +58,6 @@ class Settings:
     gemini_api_key: str | None
     gemini_api_base_url: str
     gemini_model: str
-    embedding_model_name: str
     article_cache_duration_minutes: int
     external_delivery_enabled: bool
     external_delivery_approval_required: bool
@@ -105,7 +104,6 @@ class Settings:
                 "GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"
             ),
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-            embedding_model_name=os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2"),
             article_cache_duration_minutes=_int(os.getenv("ARTICLE_CACHE_DURATION_MINUTES"), 180),
             external_delivery_enabled=_bool(os.getenv("EXTERNAL_DELIVERY_ENABLED"), True),
             external_delivery_approval_required=_bool(
