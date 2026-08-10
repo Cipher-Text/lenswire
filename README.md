@@ -79,9 +79,6 @@ Configuration is read from environment variables. See `.env.example` for all opt
 - `SUMMARY_OUTPUT_LANGUAGE`
 - `AI_PROVIDER`
 - `AI_PROVIDER_ORDER`
-- `AI_API_KEY`
-- `AI_API_BASE_URL`
-- `AI_MODEL`
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_API_BASE_URL`
 - `OPENROUTER_MODEL`

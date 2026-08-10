@@ -25,7 +25,6 @@ def _settings(**kwargs) -> Settings:
     values = {
         "summary_provider": "ai",
         "ai_provider": "openrouter",
-        "ai_api_key": "openrouter-key",
         "openrouter_api_key": "openrouter-key",
         "openrouter_model": "openrouter/free",
         "gemini_api_key": "gemini-key",
@@ -146,7 +145,6 @@ async def test_missing_keys_falls_back_without_request():
         _settings(
             ai_provider="failover",
             openrouter_api_key=None,
-            ai_api_key=None,
             gemini_api_key=None,
         )
     )
