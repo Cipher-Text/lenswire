@@ -1,0 +1,26 @@
+# News Categories
+
+- Geopolitics
+- Diplomacy
+- Defence and Security
+- War and Conflict
+- Borders and Nationalism
+- Global Trade
+- Strategic Minerals
+- Semiconductors
+- Climate Geopolitics
+- South Asia
+- Bangladesh Foreign Policy
+- India
+- Pakistan
+- China
+- Myanmar
+- Rohingya and Rakhine
+- Middle East
+- Iran
+- Israel-Palestine
+- Turkey
+- Russia-Ukraine
+- United States
+- European Union
+- US-China Relations
