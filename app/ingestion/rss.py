@@ -9,6 +9,7 @@ import feedparser
 import httpx
 
 from app.domain.article import Article, ArticleStatus, ExtractionStatus
+from app.ingestion.deduplication import titles_are_near_duplicates
 from app.ingestion.extraction import extract_article_content
 from app.ingestion.normalization import domain_from_url, normalize_title, normalize_url
 from app.ingestion.source_detection import identify_main_source
@@ -55,6 +56,7 @@ async def discover_rss_articles(
 ) -> list[tuple[int, Article]]:
     sources = [source for source in repo.list_sources() if source.rss_url]
     discovered: list[tuple[int, Article]] = []
+    recent_titles = repo.recent_normalized_titles()
     for source in sources:
         try:
             entries = await fetch_rss_feed(source.rss_url or "", timeout)
@@ -70,6 +72,20 @@ async def discover_rss_articles(
             content = extraction.content if extraction else ""
             extraction_status = extraction.status if extraction else ExtractionStatus.PENDING
             body_for_hash = content or entry.get("description", "") or entry["title"]
+            content_hash = stable_content_hash(body_for_hash)
+            norm_title = normalize_title(entry["title"])
+            if repo.article_exists_by_content_hash(content_hash):
+                logger.debug(
+                    "skipping content-hash duplicate",
+                    extra={"url": canonical_url, "source": source.name},
+                )
+                continue
+            if any(titles_are_near_duplicates(norm_title, t) for t in recent_titles):
+                logger.debug(
+                    "skipping near-duplicate headline",
+                    extra={"url": canonical_url, "title": entry["title"]},
+                )
+                continue
             article = Article(
                 original_headline=entry["title"],
                 original_url=entry["url"],
@@ -81,11 +97,12 @@ async def discover_rss_articles(
                 publication_time=_parse_date(entry.get("published")),
                 raw_description=entry.get("description", ""),
                 extracted_content=content,
-                normalized_title=normalize_title(entry["title"]),
-                content_hash=stable_content_hash(body_for_hash),
+                normalized_title=norm_title,
+                content_hash=content_hash,
                 status=ArticleStatus.APPROVED if auto_publish else ArticleStatus.NEW,
                 extraction_status=extraction_status,
             )
             article_id = repo.upsert_article(article)
+            recent_titles.append(norm_title)
             discovered.append((article_id, article))
     return discovered

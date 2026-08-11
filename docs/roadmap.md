@@ -24,7 +24,7 @@ Lenswire is being built as a modular monolith so the internal pilot can stay sim
 - Seed curated FactLens geopolitical topics.
 - Replace unrestricted interests with topic subscriptions while retaining legacy interest strings.
 - Classify stories under curated topics.
-- Generate structured summary fields: `summary`, `why_it_matters`, `editorial_angle` and `verification_status`.
+- Generate structured summary fields: `summary`, `editorial_angle` and `verification_status`.
 - Add deterministic summarization and an optional provider abstraction for AI summarization.
 - Add basic story clustering and supporting-source matching.
 

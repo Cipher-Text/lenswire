@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 import httpx
 
 from app.domain.article import Article, ArticleStatus, ExtractionStatus
+from app.ingestion.deduplication import titles_are_near_duplicates
 from app.ingestion.extraction import extract_article_content
 from app.ingestion.normalization import normalize_title, normalize_url
 from app.ingestion.source_detection import identify_main_source
@@ -45,6 +46,7 @@ async def fetch_newsapi_articles(
         response = await client.get(endpoint, params=params)
         response.raise_for_status()
     output: list[tuple[int, Article]] = []
+    recent_titles = repo.recent_normalized_titles()
     for item in response.json().get("articles", []):
         title = item.get("title") or ""
         url = item.get("url") or ""
@@ -61,6 +63,20 @@ async def fetch_newsapi_articles(
             continue
         extraction = await extract_article_content(canonical_url) if extract_content else None
         content = extraction.content if extraction else ""
+        content_hash = stable_content_hash(content or item.get("description") or title)
+        norm_title = normalize_title(title)
+        if repo.article_exists_by_content_hash(content_hash):
+            logger.debug(
+                "skipping content-hash duplicate",
+                extra={"url": canonical_url, "source": source_name},
+            )
+            continue
+        if any(titles_are_near_duplicates(norm_title, t) for t in recent_titles):
+            logger.debug(
+                "skipping near-duplicate headline",
+                extra={"url": canonical_url, "title": title},
+            )
+            continue
         article = Article(
             original_headline=title,
             original_url=url,
@@ -72,11 +88,12 @@ async def fetch_newsapi_articles(
             publication_time=_parse_iso(item.get("publishedAt")),
             raw_description=item.get("description") or "",
             extracted_content=content,
-            normalized_title=normalize_title(title),
-            content_hash=stable_content_hash(content or item.get("description") or title),
+            normalized_title=norm_title,
+            content_hash=content_hash,
             status=ArticleStatus.APPROVED if auto_publish else ArticleStatus.NEW,
             extraction_status=extraction.status if extraction else ExtractionStatus.PENDING,
         )
         article_id = repo.upsert_article(article)
+        recent_titles.append(norm_title)
         output.append((article_id, article))
     return output

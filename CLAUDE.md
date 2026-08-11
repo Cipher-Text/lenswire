@@ -43,7 +43,7 @@ docker compose restart lenswire  # Required after editing config/sources.yaml
 
 ### Data Flow
 
-1. **Ingestion** (scheduled every 30 min via bot job queue): `IngestionPipeline.run()` in `app/ingestion/pipeline.py` fetches RSS + NewsAPI, normalizes URLs, deduplicates, extracts content via trafilatura, matches topics by keyword, generates summaries, and saves to SQLite.
+1. **Ingestion** (scheduled every 30 min via bot job queue): `IngestionPipeline.run()` in `app/ingestion/pipeline.py` fetches RSS + NewsAPI, deduplicates, extracts content via trafilatura, classifies topics, generates summaries, and saves to SQLite.
 
 2. **Delivery**: `DeliveryService` in `app/delivery/service.py` queries subscribed topics for a user (or channel), filters articles not yet delivered, formats them as HTML, sends via Telegram, and records delivery to prevent re-sending.
 
@@ -59,7 +59,8 @@ docker compose restart lenswire  # Required after editing config/sources.yaml
 | `app/ingestion/pipeline.py` | Ingestion orchestration |
 | `app/ingestion/rss.py` / `newsapi.py` | Feed fetchers |
 | `app/ingestion/extraction.py` | Article content extraction (trafilatura) |
-| `app/matching/topics.py` | Keyword-based topic classification |
+| `app/matching/topics.py` | Keyword-based topic classification (fallback) |
+| `app/ingestion/deduplication.py` | Content-hash and near-duplicate headline checks |
 | `app/summarization/` | `deterministic.py` (extractive, always works) + `ai_provider.py` (OpenRouter → Gemini failover) |
 | `app/delivery/formatter.py` | Safe HTML formatting, including Bangla support |
 | `app/persistence/migrations.py` | SQLite schema creation and topic/source seeding |
@@ -72,11 +73,14 @@ docker compose restart lenswire  # Required after editing config/sources.yaml
 
 **Async + SQLite thread-pool:** All ingestion and Telegram handlers are `async`. SQLite (sync) is called via `asyncio.to_thread()` throughout `repositories.py`.
 
-**AI summary failover:** `app/summarization/ai_provider.py` tries OpenRouter first; on timeout, 429, or invalid JSON it falls back to Gemini. Both expect JSON `{summary, why_it_matters, editorial_angle, verification_status}`. Deterministic extractive summary is the final fallback.
+**AI summary + topic classification:** `app/summarization/ai_provider.py` tries OpenRouter first; on timeout, 429, or server error it falls back to Gemini. Both expect JSON `{summary, editorial_angle, verification_status, matched_topics}`. When `SUMMARY_PROVIDER=ai`, the prompt also includes the full list of known topic keys and asks the model to classify the article — `matched_topics` is used for topic assignment instead of keywords. Keyword matching (`app/matching/topics.py`) is the fallback when AI is disabled or returns no topics. Deterministic extractive summary is always the final fallback if all AI providers fail.
 
 **Source config is YAML-driven:** `config/sources.yaml` is the source-of-truth for trusted sources. It is synced into the `sources` SQLite table on every startup. Edit the YAML and restart to add/remove sources.
 
-**Deduplication is two-layered:** URL canonicalization (normalize protocol, trailing slash, query params) + SHA256 content hash. A similarity threshold (`SIMILARITY_THRESHOLD` env var) governs near-duplicate detection.
+**Deduplication is three-layered:**
+1. *URL canonicalization* — strips `www.`, trailing slashes, and tracking params; enforced via `UNIQUE` constraint on `canonical_url`.
+2. *Content hash* — SHA256 of normalized body text; checked before insert to catch the same wire story republished at different URLs.
+3. *Near-duplicate headlines* — `SequenceMatcher` at 0.88 similarity on normalized titles; checked against articles ingested in the last 48 hours, with the in-memory list updated per-run so within-cycle duplicates are also caught.
 
 **Telegram HTML formatting:** All user-facing text goes through `html.escape(..., quote=False)` in `formatter.py` to preserve `href` attributes. Bangla content is detected via `BANGLA_RE` regex for language-aware fallback logic.
 
@@ -91,7 +95,7 @@ All runtime config is in `.env` (see `.env.example`). Key variables:
 | `TELEGRAM_BOT_TOKEN` | Required |
 | `DATABASE_PATH` | SQLite path (default: `data/lenswire.sqlite3`) |
 | `SOURCE_CONFIG_PATH` | YAML source registry (default: `config/sources.yaml`) |
-| `SUMMARY_PROVIDER` | `deterministic` (default) or `ai` |
+| `SUMMARY_PROVIDER` | `deterministic` (default) or `ai` — `ai` also enables AI topic classification |
 | `AI_PROVIDER` | `failover` (OpenRouter → Gemini) |
 | `EXTERNAL_DELIVERY_APPROVAL_REQUIRED` | Enable editorial review gate |
 | `TELEGRAM_CHANNEL_ID` / `CHANNEL_TOPIC_KEYS` | Channel publishing |

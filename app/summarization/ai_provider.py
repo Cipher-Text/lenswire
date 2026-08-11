@@ -40,6 +40,13 @@ class SummaryPromptBuilder:
     language: str
 
     def system_prompt(self) -> str:
+        if self.language == "bn":
+            return (
+                "আপনি Lenswire-এর জন্য সংক্ষিপ্ত ভূরাজনৈতিক সংবাদ সারসংক্ষেপ লেখেন। "
+                "শুধুমাত্র সরবরাহ করা নিবন্ধের তথ্য ব্যবহার করুন। তথ্য উদ্ভাবন করবেন না। অনিশ্চয়তা বজায় রাখুন। "
+                "যাচাইয়ের দাবি করবেন না। "
+                "Return only valid JSON with keys: summary, editorial_angle, verification_status."
+            )
         return (
             "You write concise geopolitical news summaries for Lenswire. "
             "Use only the supplied article text. Do not invent facts. Preserve uncertainty. "
@@ -49,8 +56,18 @@ class SummaryPromptBuilder:
 
     def article_prompt(self, article: Article, topic_keys: tuple[str, ...] = ()) -> str:
         content = article.extracted_content or article.raw_description or article.original_headline
+        if self.language == "bn":
+            lang_instruction = (
+                "Output language: Bangladeshi Bangla (বাংলাদেশি প্রমিত বাংলা).\n"
+                "Write in the formal journalistic register of major Bangladeshi newspapers "
+                "such as Prothom Alo and Samakal. Use standard Bangladeshi Bangla vocabulary — "
+                "avoid Indian Bengali (Kolkata) expressions, transliterations and loanwords not "
+                "common in Bangladeshi print media."
+            )
+        else:
+            lang_instruction = f"Output language: {self.language}"
         prompt = (
-            f"Output language: {self.language}\n"
+            f"{lang_instruction}\n"
             f"Headline: {article.original_headline}\n"
             f"Source: {article.source_name or 'Unknown'}\n"
             f"URL: {article.canonical_url}\n"

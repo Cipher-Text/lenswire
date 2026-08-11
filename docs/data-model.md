@@ -10,7 +10,7 @@ SQLite tables:
 - `article_topics`: article-topic scores.
 - `story_clusters`: placeholder for grouped story records.
 - `supporting_sources`: article-to-article supporting relationships.
-- `summaries`: structured summary fields and verification status.
+- `summaries`: structured summary fields (`summary`, `editorial_angle`, `verification_status`) and provider metadata. The `why_it_matters` column exists in the schema but is no longer populated.
 - `editorial_reviews`: save, approve and reject events.
 - `delivery_history`: per-user article delivery deduplication and failures.
 

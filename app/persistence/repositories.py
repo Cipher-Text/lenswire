@@ -298,6 +298,27 @@ class Repository:
             ).fetchone()
             return int(row["id"])
 
+    def article_exists_by_content_hash(self, content_hash: str) -> bool:
+        if not content_hash:
+            return False
+        with sqlite_connection(self.database_path) as conn:
+            row = conn.execute(
+                "SELECT 1 FROM articles WHERE content_hash=? LIMIT 1", (content_hash,)
+            ).fetchone()
+        return row is not None
+
+    def recent_normalized_titles(self, since_hours: int = 48) -> list[str]:
+        with sqlite_connection(self.database_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT normalized_title FROM articles
+                WHERE fetched_time >= datetime('now', ? || ' hours')
+                AND normalized_title != ''
+                """,
+                (f"-{since_hours}",),
+            ).fetchall()
+        return [str(row["normalized_title"]) for row in rows]
+
     def set_article_topics(
         self, article_id: int, topic_scores: Iterable[tuple[str, float]]
     ) -> None:
