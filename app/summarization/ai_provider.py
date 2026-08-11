@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
 
 import httpx
 
@@ -22,10 +22,17 @@ class AIProviderError(RuntimeError):
     pass
 
 
+class ParsedSummary(TypedDict):
+    summary: str
+    editorial_angle: str
+    verification_status: str
+    matched_topics: list[str]
+
+
 class AISummaryBackend(Protocol):
     name: str
 
-    async def generate(self, article: Article) -> str: ...
+    async def generate(self, article: Article, topic_keys: tuple[str, ...] = ()) -> str: ...
 
 
 @dataclass(slots=True)
@@ -37,12 +44,12 @@ class SummaryPromptBuilder:
             "You write concise geopolitical news summaries for Lenswire. "
             "Use only the supplied article text. Do not invent facts. Preserve uncertainty. "
             "Do not claim verification. Return only valid JSON with keys: summary, "
-            "why_it_matters, editorial_angle, verification_status."
+            "editorial_angle, verification_status."
         )
 
-    def article_prompt(self, article: Article) -> str:
+    def article_prompt(self, article: Article, topic_keys: tuple[str, ...] = ()) -> str:
         content = article.extracted_content or article.raw_description or article.original_headline
-        return (
+        prompt = (
             f"Output language: {self.language}\n"
             f"Headline: {article.original_headline}\n"
             f"Source: {article.source_name or 'Unknown'}\n"
@@ -52,6 +59,13 @@ class SummaryPromptBuilder:
             "Use verification_status SINGLE_SOURCE unless the supplied text clearly indicates "
             "multiple independent sources or a primary source."
         )
+        if topic_keys:
+            prompt += (
+                f"\n\nClassify this article against these topic keys: {', '.join(topic_keys)}. "
+                "Add a matched_topics field to your JSON containing a list of matching keys "
+                "(empty list if none apply). Use only the exact keys listed."
+            )
+        return prompt
 
 
 class OpenRouterSummaryBackend:
@@ -73,7 +87,7 @@ class OpenRouterSummaryBackend:
         self.prompt_builder = prompt_builder
         self._client = client
 
-    async def generate(self, article: Article) -> str:
+    async def generate(self, article: Article, topic_keys: tuple[str, ...] = ()) -> str:
         if not self.api_key:
             raise AIProviderError("missing OpenRouter API key")
 
@@ -92,7 +106,10 @@ class OpenRouterSummaryBackend:
                     "model": self.model,
                     "messages": [
                         {"role": "system", "content": self.prompt_builder.system_prompt()},
-                        {"role": "user", "content": self.prompt_builder.article_prompt(article)},
+                        {
+                            "role": "user",
+                            "content": self.prompt_builder.article_prompt(article, topic_keys),
+                        },
                     ],
                     "temperature": 0.2,
                     "max_tokens": 1000,
@@ -133,7 +150,7 @@ class GeminiSummaryBackend:
         self.prompt_builder = prompt_builder
         self._client = client
 
-    async def generate(self, article: Article) -> str:
+    async def generate(self, article: Article, topic_keys: tuple[str, ...] = ()) -> str:
         if not self.api_key:
             raise AIProviderError("missing Gemini API key")
 
@@ -151,7 +168,9 @@ class GeminiSummaryBackend:
                     "contents": [
                         {
                             "role": "user",
-                            "parts": [{"text": self.prompt_builder.article_prompt(article)}],
+                            "parts": [
+                                {"text": self.prompt_builder.article_prompt(article, topic_keys)}
+                            ],
                         }
                     ],
                     "generationConfig": {
@@ -244,21 +263,21 @@ class OptionalAISummaryProvider:
         self.backends = AISummaryProviderFactory(settings, clients).create()
         self._fallback = DeterministicSummaryProvider(self.language)
 
-    async def summarize(self, article: Article) -> ArticleSummary:
+    async def summarize(self, article: Article, topic_keys: tuple[str, ...] = ()) -> ArticleSummary:
         errors: list[str] = []
         for backend in self.backends:
             try:
-                parsed = parse_summary_json(await backend.generate(article))
+                parsed = parse_summary_json(await backend.generate(article, topic_keys))
                 model = self._model_for_backend(backend.name)
                 return ArticleSummary(
                     article_id=None,
                     summary=parsed["summary"],
-                    why_it_matters=parsed["why_it_matters"],
                     editorial_angle=parsed["editorial_angle"],
                     verification_status=VerificationStatus(parsed["verification_status"]),
                     language=self.language,
                     provider=f"{backend.name}:{model}",
                     status="SUCCESS",
+                    matched_topics=parsed["matched_topics"],
                 )
             except Exception as exc:
                 errors.append(f"{backend.name}: {exc}")
@@ -285,27 +304,33 @@ class OptionalAISummaryProvider:
         return self.settings.openrouter_model
 
 
-def parse_summary_json(content: str) -> dict[str, str]:
+def parse_summary_json(content: str) -> ParsedSummary:
     match = re.search(r"```(?:json)?\s*(.*?)\s*```", content, re.DOTALL)
     raw = match.group(1) if match else content
     data: Any = json.loads(raw)
     if not isinstance(data, dict):
         raise ValueError("AI summary response must be a JSON object")
 
-    required = {
-        "summary",
-        "why_it_matters",
-        "editorial_angle",
-        "verification_status",
-    }
+    required = {"summary", "editorial_angle", "verification_status"}
     missing = required - set(data)
     if missing:
         raise ValueError(f"AI summary missing fields: {sorted(missing)}")
 
-    parsed = {key: str(data[key]).strip() for key in required}
-    if parsed["verification_status"] not in VALID_VERIFICATION_STATUSES:
-        parsed["verification_status"] = VerificationStatus.SINGLE_SOURCE.value
-    for key in ("summary", "why_it_matters", "editorial_angle"):
-        if not parsed[key]:
+    str_fields = {key: str(data[key]).strip() for key in required}
+    if str_fields["verification_status"] not in VALID_VERIFICATION_STATUSES:
+        str_fields["verification_status"] = VerificationStatus.SINGLE_SOURCE.value
+    for key in ("summary", "editorial_angle"):
+        if not str_fields[key]:
             raise ValueError(f"AI summary field is empty: {key}")
-    return parsed
+
+    raw_topics = data.get("matched_topics", [])
+    matched_topics = (
+        [t for t in raw_topics if isinstance(t, str)] if isinstance(raw_topics, list) else []
+    )
+
+    return ParsedSummary(
+        summary=str_fields["summary"],
+        editorial_angle=str_fields["editorial_angle"],
+        verification_status=str_fields["verification_status"],
+        matched_topics=matched_topics,
+    )

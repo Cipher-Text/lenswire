@@ -6,4 +6,6 @@ from app.domain.article import Article, ArticleSummary
 
 
 class SummaryProvider(Protocol):
-    async def summarize(self, article: Article) -> ArticleSummary: ...
+    async def summarize(
+        self, article: Article, topic_keys: tuple[str, ...] = ()
+    ) -> ArticleSummary: ...

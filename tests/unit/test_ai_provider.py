@@ -39,7 +39,6 @@ def _json_content(summary: str = "China announced new export controls.") -> str:
     return f"""
 {{
   "summary": "{summary}",
-  "why_it_matters": "The move may affect supply chains and diplomatic positioning.",
   "editorial_angle": "Watch for official details and responses from trading partners.",
   "verification_status": "SINGLE_SOURCE"
 }}

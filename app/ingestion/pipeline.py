@@ -4,7 +4,7 @@ import logging
 
 from app.ingestion.newsapi import fetch_newsapi_articles
 from app.ingestion.rss import discover_rss_articles
-from app.matching.topics import keyword_topic_matches
+from app.matching.topics import TopicMatch, keyword_topic_matches
 from app.persistence.repositories import Repository
 from app.settings import Settings
 from app.summarization.ai_provider import OptionalAISummaryProvider
@@ -49,12 +49,22 @@ class IngestionPipeline:
             )
         )
         topics = self.repo.list_topics()
+        topic_keys = tuple(t.key for t in topics)
         for article_id, article in discovered:
-            matches = keyword_topic_matches(article, topics)
+            summary = await self.summary_provider.summarize(article, topic_keys)
+            self.repo.save_summary(article_id, summary)
+
+            if summary.matched_topics:
+                matches: list[TopicMatch] = [TopicMatch(key, 0.9) for key in summary.matched_topics]
+                logger.debug(
+                    "ai topic classification",
+                    extra={"article_url": article.canonical_url, "topics": summary.matched_topics},
+                )
+            else:
+                matches = keyword_topic_matches(article, topics)
+
             self.repo.set_article_topics(
                 article_id, [(match.topic_key, match.score) for match in matches]
             )
-            summary = await self.summary_provider.summarize(article)
-            self.repo.save_summary(article_id, summary)
         logger.info("ingestion cycle complete", extra={"article_count": len(discovered)})
         return len(discovered)

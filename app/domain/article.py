@@ -55,9 +55,9 @@ class Article:
 class ArticleSummary:
     article_id: int | None
     summary: str
-    why_it_matters: str
     editorial_angle: str
     verification_status: VerificationStatus
     language: str = "en"
     provider: str = "deterministic"
     status: str = "SUCCESS"
+    matched_topics: list[str] = field(default_factory=list)

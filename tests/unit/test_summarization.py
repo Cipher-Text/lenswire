@@ -33,6 +33,5 @@ async def test_deterministic_bangla_fallback_uses_bangla_metadata():
 
     summary = await DeterministicSummaryProvider("bn").summarize(article)
 
-    assert "এই খবরটি গুরুত্বপূর্ণ" in summary.why_it_matters
-    assert "সরকারি প্রতিক্রিয়া" in summary.editorial_angle
+    assert "সরকারি প্রতিক্রিয়া" in summary.editorial_angle
     assert summary.language == "bn"

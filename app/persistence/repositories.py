@@ -331,7 +331,7 @@ class Repository:
                 (
                     article_id,
                     summary.summary,
-                    summary.why_it_matters,
+                    "",
                     summary.editorial_angle,
                     summary.verification_status.value,
                     summary.language,
