@@ -25,12 +25,3 @@ def get_interests(chat_id):
 
 def get_all_users():
     return _repo().get_users_with_legacy_interests()
-
-
-def was_sent(chat_id, url):
-    # Legacy URL-only checks are kept for compatibility with older callers.
-    return False
-
-
-def mark_sent(chat_id, url):
-    return None

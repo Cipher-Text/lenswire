@@ -133,9 +133,13 @@ async def editorial_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     if query.data is None:
         return
-    _, action, article_id_raw = query.data.split(":", 2)
+    try:
+        _, action, article_id_raw = query.data.split(":", 2)
+        article_id = int(article_id_raw)
+    except ValueError:
+        await query.edit_message_text("Invalid action data.")
+        return
     service = EditorialService(repo)
-    article_id = int(article_id_raw)
     if action == "approve":
         await asyncio.to_thread(service.approve, article_id, chat_id)
     elif action == "reject":

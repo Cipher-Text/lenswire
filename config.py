@@ -7,5 +7,4 @@ SIMILARITY_THRESHOLD = settings.similarity_threshold
 MAX_ARTICLES_PER_CYCLE = settings.max_articles_per_delivery
 DB_PATH = str(settings.database_path)
 SOURCE_CONFIG_PATH = str(settings.source_config_path)
-EMBEDDING_MODEL = settings.embedding_model_name
 RSS_FEEDS: list[str] = []

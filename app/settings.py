@@ -127,6 +127,20 @@ class Settings:
     def validate_for_bot(self) -> None:
         if not self.telegram_bot_token or self.telegram_bot_token == "YOUR_TELEGRAM_BOT_TOKEN":
             raise ValueError("TELEGRAM_BOT_TOKEN is required")
+        if self.summary_provider == "ai":
+            ordered = [
+                p.strip().lower() for p in self.ai_provider_order.split(",") if p.strip()
+            ] or ["openrouter", "gemini"]
+            has_key = any(
+                (p == "openrouter" and self.openrouter_api_key)
+                or (p == "gemini" and self.gemini_api_key)
+                for p in ordered
+            )
+            if not has_key:
+                raise ValueError(
+                    "SUMMARY_PROVIDER=ai requires at least one AI API key "
+                    "(OPENROUTER_API_KEY or GEMINI_API_KEY)"
+                )
 
 
 settings = Settings.from_env()

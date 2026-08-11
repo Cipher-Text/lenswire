@@ -171,6 +171,8 @@ async def topic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     await query.answer()
     repo: Repository = context.application.bot_data["repo"]
+    if query.data is None or query.message is None:
+        return
     action, topic_key = query.data.split(":", 1)
     if action == "sub":
         await asyncio.to_thread(repo.upsert_user, query.message.chat_id)

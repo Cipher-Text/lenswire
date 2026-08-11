@@ -15,7 +15,7 @@ from app.summarization.deterministic import DeterministicSummaryProvider
 logger = logging.getLogger(__name__)
 
 VALID_VERIFICATION_STATUSES = {status.value for status in VerificationStatus}
-RETRYABLE_STATUS_CODES = {400, 401, 402, 403, 404, 408, 409, 422, 429}
+RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
 
 class AIProviderError(RuntimeError):
@@ -102,7 +102,10 @@ class OpenRouterSummaryBackend:
                 raise AIProviderError(f"OpenRouter returned HTTP {response.status_code}")
             response.raise_for_status()
             data = response.json()
-            content = data["choices"][0]["message"]["content"]
+            choices = data.get("choices") or []
+            if not choices:
+                raise AIProviderError("OpenRouter returned no choices")
+            content = (choices[0].get("message") or {}).get("content")
             if not isinstance(content, str) or not content.strip():
                 raise AIProviderError("OpenRouter returned empty content")
             return content
@@ -162,7 +165,10 @@ class GeminiSummaryBackend:
                 raise AIProviderError(f"Gemini returned HTTP {response.status_code}")
             response.raise_for_status()
             data = response.json()
-            parts = data["candidates"][0]["content"]["parts"]
+            candidates = data.get("candidates") or []
+            if not candidates:
+                raise AIProviderError("Gemini returned no candidates")
+            parts = (candidates[0].get("content") or {}).get("parts") or []
             text = "".join(str(part.get("text", "")) for part in parts).strip()
             if not text:
                 raise AIProviderError("Gemini returned empty content")
