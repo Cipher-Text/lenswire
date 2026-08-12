@@ -19,7 +19,7 @@ Use specific AI models for stable Bangla summaries:
 SUMMARY_PROVIDER=ai
 SUMMARY_OUTPUT_LANGUAGE=bn
 AI_PROVIDER=failover
-AI_PROVIDER_ORDER=openrouter,gemini
+AI_PROVIDER_ORDER=gemini,openrouter
 OPENROUTER_MODEL=google/gemini-3.1-flash-lite
 GEMINI_MODEL=gemini-3.1-flash-lite
 ```

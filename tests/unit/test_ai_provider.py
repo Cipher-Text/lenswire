@@ -107,38 +107,34 @@ async def test_single_provider_limit_or_model_error_falls_back(status_code):
 
 
 @pytest.mark.asyncio
-async def test_failover_router_tries_openrouter_then_gemini_on_429():
+async def test_failover_router_tries_gemini_then_openrouter_on_429():
     calls: list[str] = []
-
-    def openrouter_handler(request: httpx.Request) -> httpx.Response:
-        calls.append("openrouter")
-        return httpx.Response(429, json={"error": "limit"})
 
     def gemini_handler(request: httpx.Request) -> httpx.Response:
         calls.append("gemini")
+        return httpx.Response(429, json={"error": "limit"})
+
+    def openrouter_handler(request: httpx.Request) -> httpx.Response:
+        calls.append("openrouter")
         return httpx.Response(
             200,
-            json={
-                "candidates": [
-                    {"content": {"parts": [{"text": _json_content("Gemini fallback.")}]}}
-                ]
-            },
+            json={"choices": [{"message": {"content": _json_content("OpenRouter fallback.")}}]},
         )
 
-    openrouter_client = httpx.AsyncClient(transport=httpx.MockTransport(openrouter_handler))
     gemini_client = httpx.AsyncClient(transport=httpx.MockTransport(gemini_handler))
+    openrouter_client = httpx.AsyncClient(transport=httpx.MockTransport(openrouter_handler))
     provider = OptionalAISummaryProvider(
-        _settings(ai_provider="failover", ai_provider_order="openrouter,gemini"),
-        clients={"openrouter": openrouter_client, "gemini": gemini_client},
+        _settings(ai_provider="failover", ai_provider_order="gemini,openrouter"),
+        clients={"gemini": gemini_client, "openrouter": openrouter_client},
     )
 
     summary = await provider.summarize(_article())
 
-    assert summary.provider == "gemini:gemini-2.5-flash"
-    assert summary.summary == "Gemini fallback."
-    assert calls == ["openrouter", "gemini"]
-    await openrouter_client.aclose()
+    assert summary.provider == "openrouter:openrouter/free"
+    assert summary.summary == "OpenRouter fallback."
+    assert calls == ["gemini", "openrouter"]
     await gemini_client.aclose()
+    await openrouter_client.aclose()
 
 
 @pytest.mark.asyncio
@@ -173,9 +169,9 @@ async def test_bad_json_falls_back():
     await client.aclose()
 
 
-def test_failover_order_defaults_openrouter_then_gemini():
+def test_failover_order_defaults_gemini_then_openrouter():
     provider = OptionalAISummaryProvider(
-        _settings(ai_provider="failover", ai_provider_order="openrouter,gemini")
+        _settings(ai_provider="failover", ai_provider_order="gemini,openrouter")
     )
 
-    assert [backend.name for backend in provider.backends] == ["openrouter", "gemini"]
+    assert [backend.name for backend in provider.backends] == ["gemini", "openrouter"]

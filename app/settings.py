@@ -89,7 +89,7 @@ class Settings:
             summary_provider=os.getenv("SUMMARY_PROVIDER", "deterministic"),
             summary_output_language=os.getenv("SUMMARY_OUTPUT_LANGUAGE", "en"),
             ai_provider=os.getenv("AI_PROVIDER", "failover"),
-            ai_provider_order=os.getenv("AI_PROVIDER_ORDER", "openrouter,gemini"),
+            ai_provider_order=os.getenv("AI_PROVIDER_ORDER", "gemini,openrouter"),
             ai_request_timeout_seconds=_float(os.getenv("AI_REQUEST_TIMEOUT_SECONDS"), 30.0),
             openrouter_api_key=(os.getenv("OPENROUTER_API_KEY") or os.getenv("AI_API_KEY") or None),
             openrouter_api_base_url=os.getenv(
